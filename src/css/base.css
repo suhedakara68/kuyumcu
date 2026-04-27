@@ -1,0 +1,51 @@
+/* ============================================
+   KUYUMCU PWA — Base Styles
+   ============================================ */
+
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gold-700); border-radius: var(--radius-full); }
+
+h1 { font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); }
+h2 { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); }
+h3 { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); }
+h4 { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); }
+p { color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+a { color: var(--text-gold); text-decoration: none; transition: color var(--transition-fast); }
+a:hover { color: var(--text-gold-bright); }
+small { font-size: var(--font-size-sm); color: var(--text-muted); }
+ul, ol { list-style: none; }
+img, svg { display: block; max-width: 100%; }
+input, select, textarea, button { font-family: inherit; font-size: inherit; outline: none; border: none; background: none; color: inherit; }
+button { cursor: pointer; user-select: none; }
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type="number"] { -moz-appearance: textfield; }
+::selection { background: rgba(212,168,83,0.3); color: var(--text-primary); }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.text-gold { color: var(--text-gold); }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.text-muted { color: var(--text-muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
