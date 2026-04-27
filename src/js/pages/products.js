@@ -100,7 +100,7 @@ function initTemplate(container) {
         <button class="btn-icon btn-ghost" id="close-ar" style="position:absolute; top:var(--space-4); right:var(--space-4); z-index:1000; background:rgba(0,0,0,0.5);">✕</button>
         <div id="ar-camera-container" style="width:100%; height:100%; position:relative;">
           <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-          <img id="ar-overlay-img" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; pointer-events:auto; cursor:move; transition: none;">
+          <img id="ar-overlay-img" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; pointer-events:auto; cursor:move; transition: none; mix-blend-mode: screen;">
           <div id="ar-hint" style="position:absolute; top:var(--space-10); left:0; right:0; text-align:center; color:white; font-size:10px; pointer-events:none; z-index:10;">
              ✨ Ürünü parmağınızla sürükleyip ayarlayın
           </div>
@@ -142,8 +142,9 @@ function renderProductGrid() {
         <button class="compare-toggle ${isComparing ? 'active' : ''}" data-id="${p.id}" style="position:absolute; top:10px; right:10px; z-index:5; width:32px; height:32px; border-radius:50%; background:${isComparing ? 'var(--gold-500)' : 'rgba(0,0,0,0.5)'}; border:none; color:${isComparing ? 'black' : 'white'}; display:flex; align-items:center; justify-content:center; cursor:pointer;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v8z"/><path d="M7 18v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1h-2"/></svg>
         </button>
-        <div class="product-card__img">
-          ${p.image ? `<img src="${p.image}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;">` : `<div class="emoji-placeholder" style="font-size:3rem;">${p.emoji}</div>`}
+        <div class="product-card__image-wrap">
+          <img src="${p.image}" class="product-card__image" loading="lazy" style="mix-blend-mode: screen;">
+          ${p.isNew ? '<span class="product-card__badge">YENİ</span>' : ''}
         </div>
         <div class="product-card__body">
           <div class="product-card__name">${p.name}</div>
