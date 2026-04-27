@@ -6,13 +6,13 @@ import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, a
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyBwX8vsNizgBsJxJjXaPOzQO4a5bKHlv5s",
+  authDomain: "kuyumcu-app-86d30.firebaseapp.com",
+  databaseURL: "https://kuyumcu-app-86d30-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kuyumcu-app-86d30",
+  storageBucket: "kuyumcu-app-86d30.firebasestorage.app",
+  messagingSenderId: "973335402698",
+  appId: "1:973335402698:web:1ec68d7506eee0004c3c33"
 };
 
 const app = initializeApp(firebaseConfig);
