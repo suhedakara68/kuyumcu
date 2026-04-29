@@ -176,30 +176,33 @@ async function openAR(product) {
   
   if (!modal || !video || !canvas) return;
 
+  // Immediate UI Feedback
   modal.style.display = 'block';
-  status.textContent = 'Kamera Başlatılıyor...';
+  status.style.display = 'block';
+  status.textContent = 'Başlatılıyor...';
   
   try {
     document.getElementById('ar-product-name').textContent = product.name;
     const price = calculateProductPrice(product, currentGramPrice);
     document.getElementById('ar-product-price').textContent = formatCurrency(price);
 
-    await arService.init(video, canvas);
-    const mode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
-    
-    await arService.start(mode, () => {
-      status.style.display = 'none';
+    // Initializing with status updates
+    await arService.init(video, canvas, (msg) => {
+      status.textContent = msg;
     });
 
+    const mode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
+    await arService.start(mode);
+
     if (product.model3d) {
-      status.textContent = '3D Model Hazırlanıyor...';
       await arService.loadModel(product.model3d).catch(() => console.warn("Model fallback"));
     }
 
   } catch (err) {
     console.error("AR Error:", err);
-    status.textContent = 'Hata: Kamera başlatılamadı.';
+    status.textContent = err.message || 'Kamera başlatılamadı.';
     status.style.background = '#e74c3c';
+    setTimeout(() => { modal.style.display = 'none'; }, 3000);
   }
 }
 
