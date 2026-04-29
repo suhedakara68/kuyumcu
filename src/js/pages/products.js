@@ -112,9 +112,8 @@ async function openAR(product) {
     const mode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
     await arService.start(mode);
     
-    if (product.model3d) {
-      await arService.loadModel(product.model3d);
-    }
+    // Pass model and fallback image
+    await arService.loadModel(product.model3d, product.image);
     
     status.style.display = 'none';
   } catch (err) {
