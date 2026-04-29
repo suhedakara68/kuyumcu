@@ -118,9 +118,21 @@ async function openAR(product) {
     
     status.style.display = 'none';
   } catch (err) {
-    status.textContent = "HATA: " + err.message;
-    status.style.background = "red";
-    setTimeout(() => { modal.style.display = 'none'; }, 4000);
+    console.error("AR Error Object:", err);
+    const errMsg = err.message || (typeof err === 'string' ? err : JSON.stringify(err));
+    status.textContent = "HATA: " + errMsg;
+    status.style.background = "#c0392b";
+    status.style.padding = "20px";
+    status.style.width = "80%";
+    
+    // Don't close immediately so the user can read the error
+    setTimeout(() => { 
+      if (confirm("Hata oluştu, sayfa yenilensin mi?")) {
+        location.reload();
+      } else {
+        modal.style.display = 'none';
+      }
+    }, 6000);
   }
 }
 
