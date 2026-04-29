@@ -7,11 +7,11 @@ import { formatCurrency } from '../utils/formatters.js';
 
 export function renderAlarms(container) {
   container.innerHTML = `
-    <h2 class="page__title">🔔 Fiyat Alarmları</h2>
+    <h2 class="page__title">Fiyat Alarmları</h2>
     <p class="page__subtitle">Hedef fiyata ulaşıldığında bildirim alın</p>
 
     <button class="btn btn-gold btn-block" id="add-alarm-btn" style="margin-bottom:var(--space-5);">
-      ➕ Yeni Alarm Ekle
+      Yeni Alarm Ekle
     </button>
 
     <div class="grid-1 stagger" id="alarm-list"></div>
@@ -90,7 +90,7 @@ function renderAlarmList() {
 
   if (alarms.length === 0) {
     list.innerHTML = `<div class="empty-state">
-      <div class="empty-state__icon">🔕</div>
+      <div class="empty-state__icon"></div>
       <div class="empty-state__title">Henüz alarm yok</div>
       <div class="empty-state__desc">Fiyat hedefi belirleyin, ulaşıldığında bildirim alın</div>
     </div>`;
@@ -109,15 +109,15 @@ function renderAlarmList() {
 
     return `
       <div class="alarm-card">
-        <div class="alarm-card__icon">🔔</div>
+        <div class="alarm-card__icon"></div>
         <div class="alarm-card__body">
           <div class="alarm-card__title">${name}</div>
           <div class="alarm-card__desc">${condText}: ${formatCurrency(a.targetPrice)}</div>
           <div style="margin-top:4px;">${statusBadge}</div>
         </div>
         <div class="alarm-card__actions" style="display:flex;gap:var(--space-2);">
-          <button class="btn-icon btn-ghost alarm-toggle" data-id="${a.id}" title="Aç/Kapat">${a.active ? '⏸️' : '▶️'}</button>
-          <button class="btn-icon btn-ghost alarm-delete" data-id="${a.id}" title="Sil">🗑️</button>
+          <button class="btn-icon btn-ghost alarm-toggle" data-id="${a.id}" title="Aç/Kapat">${a.active ? 'Durdur' : 'Başlat'}</button>
+          <button class="btn-icon btn-ghost alarm-delete" data-id="${a.id}" title="Sil">Sil</button>
         </div>
       </div>
     `;

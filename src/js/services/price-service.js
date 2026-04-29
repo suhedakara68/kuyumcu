@@ -12,18 +12,18 @@ let apiAvailable = false;
 
 // ─── Key Mapping ───
 const GOLD_MAP = {
-  'gram-altin':      { key: 'gram_altin',   name: 'Gram Altın',       icon: '🥇', unit: '₺/gr' },
-  'ceyrek-altin':    { key: 'ceyrek_altin', name: 'Çeyrek Altın',     icon: '🪙', unit: '₺/adet' },
-  'yarim-altin':     { key: 'yarim_altin',  name: 'Yarım Altın',      icon: '🏅', unit: '₺/adet' },
-  'tam-altin':       { key: 'tam_altin',    name: 'Tam Altın',         icon: '💰', unit: '₺/adet' },
-  '22-ayar-bilezik': { key: 'bilezik_22',   name: '22 Ayar Bilezik',   icon: '💎', unit: '₺/gr' },
-  'ata-altin':       { key: 'ata_altin',    name: 'Ata Altın',         icon: '🏛️', unit: '₺/adet' },
+  'gram-altin':      { key: 'gram_altin',   name: 'Gram Altın',       icon: '', unit: '₺/gr' },
+  'ceyrek-altin':    { key: 'ceyrek_altin', name: 'Çeyrek Altın',     icon: '', unit: '₺/adet' },
+  'yarim-altin':     { key: 'yarim_altin',  name: 'Yarım Altın',      icon: '', unit: '₺/adet' },
+  'tam-altin':       { key: 'tam_altin',    name: 'Tam Altın',         icon: '', unit: '₺/adet' },
+  '22-ayar-bilezik': { key: 'bilezik_22',   name: '22 Ayar Bilezik',   icon: '', unit: '₺/gr' },
+  'ata-altin':       { key: 'ata_altin',    name: 'Ata Altın',         icon: '', unit: '₺/adet' },
 };
 
 const CURRENCY_MAP = {
-  'USD': { key: 'usd_try', name: 'USD/TRY', icon: '💵', unit: '₺' },
-  'EUR': { key: 'eur_try', name: 'EUR/TRY', icon: '💶', unit: '₺' },
-  'GBP': { key: 'gbp_try', name: 'GBP/TRY', icon: '💷', unit: '₺' },
+  'USD': { key: 'usd_try', name: 'USD/TRY', icon: '', unit: '₺' },
+  'EUR': { key: 'eur_try', name: 'EUR/TRY', icon: '', unit: '₺' },
+  'GBP': { key: 'gbp_try', name: 'GBP/TRY', icon: '', unit: '₺' },
 };
 
 const DEFAULT_MARGINS = {
@@ -137,9 +137,9 @@ function recalcPrices() {
 }
 
 const FALLBACK_PRICES = {
-  gram_altin:   { name: 'Gram Altın', icon: '🥇', buy: 2500, sell: 2510, unit: '₺/gr' },
-  usd_try:      { name: 'USD/TRY', icon: '💵', buy: 32.50, sell: 32.60, unit: '₺' },
-  eur_try:      { name: 'EUR/TRY', icon: '💶', buy: 35.10, sell: 35.20, unit: '₺' },
+  gram_altin:   { name: 'Gram Altın', icon: '', buy: 2500, sell: 2510, unit: '₺/gr' },
+  usd_try:      { name: 'USD/TRY', icon: '', buy: 32.50, sell: 32.60, unit: '₺' },
+  eur_try:      { name: 'EUR/TRY', icon: '', buy: 35.10, sell: 35.20, unit: '₺' },
 };
 
 function useSimulatedData() {

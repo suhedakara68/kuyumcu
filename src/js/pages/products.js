@@ -59,7 +59,7 @@ export function renderProducts(container) {
 
 function initTemplate(container) {
   container.innerHTML = `
-    <h2 class="page__title">💍 Ürünler</h2>
+    <h2 class="page__title">Ürünler</h2>
     <p class="page__subtitle">Katalog ve Karşılaştırma</p>
 
     <div class="category-scroll" id="category-scroll"></div>
@@ -88,7 +88,7 @@ function initTemplate(container) {
     <div class="modal-overlay" id="compare-modal">
       <div class="modal" style="max-height:90vh; overflow:hidden; padding:0; display:flex; flex-direction:column;">
         <div class="modal__header" style="padding:var(--space-4); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-          <h3 style="margin:0;">⚖️ Ürün Kıyaslama</h3>
+          <h3 style="margin:0;">Ürün Kıyaslama</h3>
           <button class="btn-icon" id="close-compare">✕</button>
         </div>
         <div id="compare-table-content" style="flex:1; overflow-y:auto; padding:var(--space-4);"></div>
@@ -96,13 +96,71 @@ function initTemplate(container) {
     </div>
 
     <div class="modal-overlay" id="ar-modal">
-      <div class="modal" style="height:90vh; padding:0; overflow:hidden; background:#000;">
-        <button class="btn-icon btn-ghost" id="close-ar" style="position:absolute; top:var(--space-4); right:var(--space-4); z-index:1000; background:rgba(0,0,0,0.5);">✕</button>
-        <div id="ar-camera-container" style="width:100%; height:100%; position:relative;">
-          <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-          <img id="ar-overlay-img" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; pointer-events:auto; cursor:move; transition: none; mix-blend-mode: screen;">
-          <div id="ar-hint" style="position:absolute; top:var(--space-10); left:0; right:0; text-align:center; color:white; font-size:10px; pointer-events:none; z-index:10;">
-             ✨ Ürünü parmağınızla sürükleyip ayarlayın
+      <div class="modal ar-modal-content" style="height:100dvh; width:100vw; max-width:none; padding:0; overflow:hidden; background:#000; border:none; border-radius:0; margin:0;">
+        <!-- Header -->
+        <div class="ar-header" style="position:absolute; top:0; left:0; right:0; padding:15px; display:flex; justify-content:space-between; align-items:center; z-index:100; background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);">
+          <div style="color:white; font-size:10px; opacity:0.8; font-weight:500;">Görseller örnektir. Boyut farklılık gösterebilir.</div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-icon" id="btn-ar-share" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); color:white; border-radius:50%; width:36px; height:36px; border:none; display:flex; align-items:center; justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            </button>
+            <button class="btn-icon" id="close-ar" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); color:white; border-radius:50%; width:36px; height:36px; border:none; display:flex; align-items:center; justify-content:center;">✕</button>
+          </div>
+        </div>
+
+        <div id="ar-view-container" style="width:100%; height:100%; position:relative;">
+          <!-- Desktop QR View -->
+          <div id="ar-desktop-qr" style="display:none; width:100%; height:100%; background:var(--bg-primary); flex-direction:column; align-items:center; justify-content:center; padding:40px; text-align:center;">
+             <div style="background:white; padding:20px; border-radius:24px; margin-bottom:24px; box-shadow:0 10px 40px rgba(212,168,83,0.3);">
+                <img id="ar-qr-img" src="" style="width:200px; height:200px;">
+             </div>
+             <h3 style="color:white; margin-bottom:12px;">Telefonda Dene</h3>
+             <p style="color:var(--text-muted); font-size:14px; margin-bottom:40px; max-width:280px;">QR kodu kameranızla tarayarak ürünü kolunuzda hemen deneyin.</p>
+             <div style="display:flex; background:var(--bg-surface); padding:10px 20px; border-radius:30px; gap:12px; align-items:center;">
+                <span class="ar-tab active" style="color:var(--gold-500); font-weight:600; font-size:12px;">Resimde Gör</span>
+                <span class="ar-tab" style="color:var(--text-muted); font-size:12px;">Kolumda Gör</span>
+                <span class="ar-tab" style="color:var(--text-muted); font-size:12px;">Karşılaştır</span>
+             </div>
+          </div>
+
+          <!-- Mobile Camera View -->
+          <div id="ar-mobile-view" style="display:none; width:100%; height:100%; position:relative;">
+            <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+            <div class="ar-overlay-mask" style="position:absolute; inset:0; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.2) 100%); pointer-events:none;"></div>
+            
+            <img id="ar-overlay-img" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; pointer-events:auto; cursor:move; transition: none; filter: drop-shadow(0 15px 35px rgba(0,0,0,0.4)) contrast(1.05) brightness(1.05);">
+            
+            <div id="ar-hint-box" style="position:absolute; top:40%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); padding:12px 20px; border-radius:12px; color:white; text-align:center; z-index:10; pointer-events:none; transition: opacity 0.5s;">
+               <div style="font-size:24px; margin-bottom:8px;">↔️</div>
+               <div style="font-size:13px; font-weight:500;">Ürüne dokunup sürükleyin</div>
+            </div>
+
+            <!-- Branding -->
+            <div style="position:absolute; top:80px; left:20px; color:white; opacity:0.3; font-size:10px; z-index:10; font-family:serif;">
+               Powered by<br><strong style="letter-spacing:1px;">NOVENTRA</strong>
+            </div>
+
+            <!-- Mobile Bottom Bar -->
+            <div style="position:absolute; bottom:0; left:0; right:0; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding:20px; z-index:100;">
+              <div style="display:flex; background:rgba(255,255,255,0.95); padding:4px; border-radius:30px; margin-bottom:20px; width:fit-content; margin-inline:auto;">
+                <button class="ar-mode-btn" style="padding:10px 15px; border-radius:26px; border:none; background:none; font-size:12px; font-weight:600;">Resimde Gör</button>
+                <button class="ar-mode-btn active" style="padding:10px 15px; border-radius:26px; border:none; background:#000; color:#fff; font-size:12px; font-weight:600;">Kolumda Gör</button>
+                <button class="ar-mode-btn" style="padding:10px 15px; border-radius:26px; border:none; background:none; font-size:12px; font-weight:600;">Karşılaştır</button>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div id="ar-product-info">
+                   <div id="ar-product-name" style="color:white; font-size:13px; font-weight:600; margin-bottom:2px;">Ürün Yükleniyor...</div>
+                   <div id="ar-product-price" style="color:var(--gold-500); font-size:16px; font-weight:800;">0.00 TL</div>
+                </div>
+                <button class="btn btn-gold" id="ar-add-to-cart" style="padding:12px 24px; border-radius:8px; font-weight:700;">SEPETE EKLE</button>
+              </div>
+            </div>
+
+            <!-- Quick Controls -->
+            <button id="btn-ar-camera" style="position:absolute; bottom:100px; left:20px; width:44px; height:44px; border-radius:50%; background:white; border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:101;">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -143,7 +201,7 @@ function renderProductGrid() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v8z"/><path d="M7 18v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1h-2"/></svg>
         </button>
         <div class="product-card__image-wrap">
-          <img src="${p.image}" class="product-card__image" loading="lazy" style="mix-blend-mode: screen;">
+          <img src="${p.image}" class="product-card__image" loading="lazy">
           ${p.isNew ? '<span class="product-card__badge">YENİ</span>' : ''}
         </div>
         <div class="product-card__body">
@@ -152,8 +210,8 @@ function renderProductGrid() {
           <div class="product-card__price">${formatCurrency(price)}</div>
           
           <div style="margin-top:var(--space-3); display:grid; grid-template-columns:1fr 1fr; gap:var(--space-2);">
-            <button class="btn btn-ghost btn-sm wa-ask" data-name="${p.name}" style="font-size:10px;">💬 Sor</button>
-            <button class="btn btn-gold btn-sm ar-try" data-img="${p.image || ''}" style="font-size:10px;">✨ Dene</button>
+            <button class="btn btn-ghost btn-sm wa-ask" data-name="${p.name}" style="font-size:10px;">Sor</button>
+            <button class="btn btn-gold btn-sm ar-try" data-img="${p.image || ''}" style="font-size:10px;">Dene</button>
           </div>
         </div>
       </div>
@@ -177,7 +235,11 @@ function renderProductGrid() {
   });
 
   grid.querySelectorAll('.ar-try').forEach(btn => {
-    btn.addEventListener('click', () => openAR(btn.dataset.img));
+    btn.addEventListener('click', () => {
+      const id = btn.closest('.product-card').dataset.id;
+      const product = products.find(p => p.id === id);
+      openAR(product);
+    });
   });
 }
 
@@ -240,7 +302,7 @@ function openCompareModal() {
             <div>${p.karat} Ayar</div>
             <div>${formatNumber(p.weight)} gr</div>
             <div style="color:var(--text-muted);">${formatCurrency(price / p.weight)}/gr</div>
-            <button class="btn btn-gold btn-sm wa-ask" data-name="${p.name}" style="margin-top:10px; width:100%; padding:6px; font-size:10px;">🛍️ Satın Al</button>
+            <button class="btn btn-gold btn-sm wa-ask" data-name="${p.name}" style="margin-top:10px; width:100%; padding:6px; font-size:10px;">Satın Al</button>
           </div>
         `;
       }).join('')}
@@ -255,84 +317,104 @@ let currentX = 0, currentY = 0;
 let arScale = 1;
 let arRotation = 0;
 
-async function openAR(imgSrc) {
+async function openAR(product) {
   const modal = document.getElementById('ar-modal');
   const video = document.getElementById('ar-video');
   const overlay = document.getElementById('ar-overlay-img');
+  const desktopView = document.getElementById('ar-desktop-qr');
+  const mobileView = document.getElementById('ar-mobile-view');
   if (!modal || !video || !overlay) return;
 
-  overlay.src = imgSrc;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
   modal.classList.add('active');
+  overlay.src = product.image;
+
+  // Update UI with product info
+  document.getElementById('ar-product-name').textContent = product.name;
+  const price = calculateProductPrice(product, currentGramPrice);
+  document.getElementById('ar-product-price').textContent = formatCurrency(price);
+
+  if (!isMobile) {
+    desktopView.style.display = 'flex';
+    mobileView.style.display = 'none';
+    
+    // Generate QR (pointing to current URL)
+    const currentUrl = window.location.href;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(currentUrl)}`;
+    document.getElementById('ar-qr-img').src = qrUrl;
+    return;
+  }
+
+  // Mobile Experience
+  desktopView.style.display = 'none';
+  mobileView.style.display = 'block';
   
   // Reset state
   currentX = 0; currentY = 0; arScale = 1; arRotation = 0;
   updateOverlayTransform();
+  
+  const hintBox = document.getElementById('ar-hint-box');
+  hintBox.style.opacity = '1';
 
-  // Create controls if not exists
-  if (!document.getElementById('ar-controls')) {
-    const controls = document.createElement('div');
-    controls.id = 'ar-controls';
-    controls.style = 'position:absolute; bottom:50px; left:0; right:0; padding:15px; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); color:white; z-index:100;';
-    controls.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <button class="btn btn-ghost" id="btn-switch-cam" style="color:white; border:1px solid white; font-size:11px; padding:5px 10px;">🔄 Kamera Değiştir</button>
-        <span style="font-size:10px; opacity:0.8;">Parmağınızla sürükleyin</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-        <span style="font-size:14px;">📏</span>
-        <input type="range" id="ar-scale" min="0.2" max="3" step="0.05" value="1" style="flex:1;">
-      </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:14px;">🔄</span>
-        <input type="range" id="ar-rotate" min="-180" max="180" step="1" value="0" style="flex:1;">
-      </div>
-    `;
-    document.getElementById('ar-camera-container').appendChild(controls);
+  // Interaction Logic (Touch & Drag)
+  let isDragging = false;
+  let startX, startY;
 
-    // Controls Event Listeners
-    document.getElementById('ar-scale').addEventListener('input', (e) => {
-      arScale = e.target.value;
-      updateOverlayTransform();
-    });
-    document.getElementById('ar-rotate').addEventListener('input', (e) => {
-      arRotation = e.target.value;
-      updateOverlayTransform();
-    });
-    document.getElementById('btn-switch-cam').addEventListener('click', toggleCamera);
+  const startDrag = (e) => {
+    isDragging = true;
+    const pos = e.type === 'touchstart' ? e.touches[0] : e;
+    startX = pos.clientX - currentX;
+    startY = pos.clientY - currentY;
+    hintBox.style.opacity = '0';
+  };
 
-    // Interaction Logic
-    let isDragging = false;
-    let startX, startY;
+  const doDrag = (e) => {
+    if (!isDragging) return;
+    if (e.type === 'touchmove') e.preventDefault();
+    const pos = e.type === 'touchmove' ? e.touches[0] : e;
+    currentX = pos.clientX - startX;
+    currentY = pos.clientY - startY;
+    updateOverlayTransform();
+  };
 
-    const startDrag = (e) => {
-      isDragging = true;
-      const pos = e.type === 'touchstart' ? e.touches[0] : e;
-      startX = pos.clientX - currentX;
-      startY = pos.clientY - currentY;
-      document.getElementById('ar-hint').style.display = 'none';
-    };
+  const endDrag = () => { isDragging = false; };
 
-    const doDrag = (e) => {
-      if (!isDragging) return;
-      if (e.type === 'touchmove') e.preventDefault();
-      const pos = e.type === 'touchmove' ? e.touches[0] : e;
-      currentX = pos.clientX - startX;
-      currentY = pos.clientY - startY;
-      updateOverlayTransform();
-    };
+  // Remove old listeners to avoid duplicates if re-opened
+  overlay.removeEventListener('mousedown', startDrag);
+  overlay.removeEventListener('touchstart', startDrag);
+  
+  overlay.addEventListener('mousedown', startDrag);
+  overlay.addEventListener('touchstart', startDrag);
+  
+  window.removeEventListener('mousemove', doDrag);
+  window.removeEventListener('touchmove', doDrag);
+  window.addEventListener('mousemove', doDrag);
+  window.addEventListener('touchmove', doDrag, { passive: false });
+  
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
 
-    const endDrag = () => { isDragging = false; };
-
-    overlay.addEventListener('mousedown', startDrag);
-    overlay.addEventListener('touchstart', startDrag);
-    window.addEventListener('mousemove', doDrag);
-    window.addEventListener('touchmove', doDrag, { passive: false });
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
+  // Scale/Rotation with Pinch (Advanced - for now we'll add sliders back if needed, but let's try a premium feel)
+  // Let's add a small control panel for scale if user wants to adjust
+  if (!document.getElementById('ar-quick-controls')) {
+     const qc = document.createElement('div');
+     qc.id = 'ar-quick-controls';
+     qc.style = 'position:absolute; top:80px; right:20px; display:flex; flex-direction:column; gap:15px; z-index:101;';
+     qc.innerHTML = `
+        <button id="ar-zoom-in" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">+</button>
+        <button id="ar-zoom-out" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">-</button>
+        <button id="ar-reset" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:16px;">🔄</button>
+     `;
+     mobileView.appendChild(qc);
+     
+     document.getElementById('ar-zoom-in').onclick = () => { arScale += 0.1; updateOverlayTransform(); };
+     document.getElementById('ar-zoom-out').onclick = () => { arScale = Math.max(0.2, arScale - 0.1); updateOverlayTransform(); };
+     document.getElementById('ar-reset').onclick = () => { currentX = 0; currentY = 0; arScale = 1; updateOverlayTransform(); };
   }
 
   function updateOverlayTransform() {
-    overlay.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px)) scale(${arScale}) rotate(${arRotation}deg)`;
+    overlay.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px)) scale(${arScale})`;
   }
 
   async function startCamera() {
@@ -340,28 +422,22 @@ async function openAR(imgSrc) {
       if (arStream) arStream.getTracks().forEach(t => t.stop());
       const constraints = { 
         video: { 
-          facingMode: { ideal: currentFacingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         } 
       };
       arStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = arStream;
     } catch (err) {
       console.error("AR Kamera Hatası:", err);
-      // Fallback
       try {
         arStream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = arStream;
       } catch (e) {
-        alert("Kameraya erişilemedi.");
+        alert("Kameraya erişilemedi. Lütfen izin verin.");
       }
     }
-  }
-
-  async function toggleCamera() {
-    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    await startCamera();
   }
 
   await startCamera();
@@ -380,8 +456,26 @@ function renderCategories() {
 }
 
 document.addEventListener('click', (e) => {
-  if (e.target.id === 'close-ar') {
+  if (e.target.id === 'close-ar' || e.target.closest('#close-ar')) {
     document.getElementById('ar-modal').classList.remove('active');
     if (arStream) arStream.getTracks().forEach(t => t.stop());
+  }
+
+  if (e.target.id === 'ar-add-to-cart') {
+    alert("Ürün sepetinize eklendi!");
+    document.getElementById('ar-modal').classList.remove('active');
+    if (arStream) arStream.getTracks().forEach(t => t.stop());
+  }
+
+  if (e.target.id === 'btn-ar-share') {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Noventra Kuyumculuk',
+        text: 'Bu ürünü denedim, harika görünüyor!',
+        url: window.location.href
+      });
+    } else {
+      alert("Paylaşım bu tarayıcıda desteklenmiyor.");
+    }
   }
 });

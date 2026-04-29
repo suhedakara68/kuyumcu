@@ -549,3 +549,65 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── AR TRY-ON MODAL ─── */
+.modal-overlay#ar-modal.active {
+  display: block;
+  z-index: var(--z-nav);
+}
+
+.ar-modal-content {
+  animation: modalUp 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ar-header .btn-icon:active {
+  transform: scale(0.9);
+}
+
+.ar-tab {
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+
+.ar-tab.active {
+  background: rgba(212, 168, 83, 0.1);
+}
+
+.ar-mode-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ar-mode-btn.active {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#ar-hint-box {
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -10px); }
+}
+
+#ar-quick-controls button:active {
+  transform: scale(0.85);
+  background: white;
+}
+
+#ar-overlay-img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Animations */
+@keyframes modalUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

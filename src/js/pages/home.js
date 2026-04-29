@@ -12,52 +12,62 @@ export function renderHome(container) {
   container.innerHTML = `
     <div class="news-ticker">
       <div class="news-ticker__wrapper" id="news-marquee">
-        <span>📉 Altın fiyatları ABD verileri sonrası hareketlendi...</span>
-        <span>🌍 Küresel piyasalarda gözler Fed faiz kararında...</span>
-        <span>🇹🇷 Dolar/TL paritesinde stabil seyir devam ediyor...</span>
-        <span>💎 Noventra: Kuyumculukta yeni nesil dijital deneyim.</span>
+        <span>Altın fiyatları ABD verileri sonrası hareketlendi...</span>
+        <span>Küresel piyasalarda gözler Fed faiz kararında...</span>
+        <span>Dolar/TL paritesinde stabil seyir devam ediyor...</span>
+        <span>Noventra: Kuyumculukta dijital dönüşümün öncüsü.</span>
       </div>
     </div>
 
-    <div class="home-banner glow-gold" id="main-banner">
-      <div class="home-banner__row">
-        <div>
-          <div class="home-banner__label">GRAM ALTIN</div>
-          <div class="home-banner__price" id="banner-price">₺0,00</div>
-          <div class="home-banner__subtitle" id="banner-time">Güncelleniyor...</div>
-        </div>
-        <div class="home-banner__change-wrap">
-          <div class="price-card__change" id="banner-change">%0,00</div>
-          <div class="home-banner__subtitle" id="banner-direction">—</div>
-        </div>
-      </div>
-    </div>
+    <div class="section" style="padding-top:0;">
+       <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:var(--space-4);">
+          <div>
+            <h2 style="font-size:20px; font-weight:800; color:var(--text-gold); margin-bottom:4px;">Piyasalar</h2>
+            <div id="banner-time" style="font-size:11px; color:var(--text-muted);">Güncelleniyor...</div>
+          </div>
+          <div id="live-badge" class="badge badge-api">Canlı API</div>
+       </div>
 
+       <!-- Gold Market List -->
+       <div class="market-card">
+          <div style="padding:15px 16px; font-weight:800; font-size:14px; color:#d4a853; border-bottom:1px solid #eee; display:flex; align-items:center; gap:8px;">
+             ALTIN FİYATLARI
+          </div>
+          <div class="market-header">
+             <div>Ürün</div>
+             <div>Alış</div>
+             <div>Satış</div>
+             <div>Fark</div>
+             <div></div>
+          </div>
+          <div id="gold-list-container"></div>
+       </div>
 
-    <div class="section">
-      <div class="section__header">
-        <h3 class="section__title">🏅 ALTIN FİYATLARI</h3>
-        <span class="badge badge-api" id="live-badge">Canlı API</span>
-      </div>
-      <div class="grid-2 stagger" id="gold-grid"></div>
-    </div>
-
-    <div class="section">
-      <div class="section__header">
-        <span class="section__title">💱 Döviz Kurları</span>
-      </div>
-      <div class="grid-1 stagger" id="currency-grid"></div>
+       <!-- Currency Market List -->
+       <div class="market-card">
+          <div style="padding:15px 16px; font-weight:800; font-size:14px; color:#3b82f6; border-bottom:1px solid #eee; display:flex; align-items:center; gap:8px;">
+             DÖVİZ KURLARI
+          </div>
+          <div class="market-header">
+             <div>Döviz</div>
+             <div>Alış</div>
+             <div>Satış</div>
+             <div>Fark</div>
+             <div></div>
+          </div>
+          <div id="currency-list-container"></div>
+       </div>
     </div>
 
     <!-- Chart Modal -->
     <div class="modal-overlay" id="chart-modal">
-      <div class="modal" style="height:80vh; display:flex; flex-direction:column;">
-        <div class="modal__handle"></div>
+      <div class="modal" style="height:80vh; display:flex; flex-direction:column; background:white;">
+        <div class="modal__handle" style="background:#ddd;"></div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
-          <h3 id="chart-title">Grafik</h3>
-          <button class="btn-icon btn-ghost" id="close-chart">✕</button>
+          <h3 id="chart-title" style="color:#333; font-weight:800;">Grafik</h3>
+          <button class="btn-icon btn-ghost" id="close-chart" style="color:#999;">✕</button>
         </div>
-        <div id="tv-chart-container" style="flex:1; width:100%; min-height:300px; border-radius:var(--radius-md); overflow:hidden;"></div>
+        <div id="tv-chart-container" style="flex:1; width:100%; min-height:300px; border-radius:var(--radius-md); overflow:hidden; border:1px solid #eee;"></div>
       </div>
     </div>
   `;
@@ -78,7 +88,7 @@ export function renderHome(container) {
 
   // Chart interactions
   document.addEventListener('click', (e) => {
-    const card = e.target.closest('.price-card');
+    const card = e.target.closest('.market-row');
     if (!card) return;
     
     const key = card.dataset.key;
@@ -117,101 +127,50 @@ function updateBanner(prices) {
   const gram = prices.gram_altin;
   if (!gram) return;
 
-  const priceEl = document.getElementById('banner-price');
   const timeEl = document.getElementById('banner-time');
-  const changeEl = document.getElementById('banner-change');
-  const dirEl = document.getElementById('banner-direction');
-
-  if (priceEl) {
-    const prev = priceEl.textContent;
-    const next = formatCurrency(gram.marginSell);
-    priceEl.textContent = next;
-    if (prev !== next && prev !== '₺0,00') {
-      const banner = document.getElementById('main-banner');
-      banner.classList.remove('flash-up', 'flash-down');
-      void banner.offsetWidth;
-      banner.classList.add(gram.direction === 'up' ? 'flash-up' : 'flash-down');
-    }
-  }
-  if (timeEl) timeEl.textContent = `Son güncelleme: ${formatTime(gram.updatedAt)}`;
-  if (changeEl) {
-    changeEl.textContent = formatPercent(gram.change);
-    changeEl.className = `price-card__change ${gram.change >= 0 ? 'up' : 'down'}`;
-  }
-  if (dirEl) dirEl.textContent = gram.direction === 'up' ? '📈 Yükseliyor' : gram.direction === 'down' ? '📉 Düşüyor' : '➡️ Sabit';
+  if (timeEl) timeEl.innerHTML = `Son güncelleme: ${formatTime(gram.updatedAt)}`;
 }
 
 function updateGoldGrid(prices) {
-  const grid = document.getElementById('gold-grid');
-  if (!grid) return;
+  const container = document.getElementById('gold-list-container');
+  if (!container) return;
 
-  grid.innerHTML = GOLD_KEYS.map(key => {
+  container.innerHTML = GOLD_KEYS.map(key => {
     const p = prices[key];
     if (!p) return '';
-    return renderPriceCard(p);
+    return renderMarketRow(p);
   }).join('');
 }
 
 function updateCurrencyGrid(prices) {
-  const grid = document.getElementById('currency-grid');
-  if (!grid) return;
+  const container = document.getElementById('currency-list-container');
+  if (!container) return;
 
-  grid.innerHTML = CURRENCY_KEYS.map(key => {
+  container.innerHTML = CURRENCY_KEYS.map(key => {
     const p = prices[key];
     if (!p) return '';
-    return renderCurrencyCard(p);
+    return renderMarketRow(p);
   }).join('');
 }
 
-function renderPriceCard(p) {
-  const dirClass = p.direction === 'up' ? 'is-up' : p.direction === 'down' ? 'is-down' : '';
+function renderMarketRow(p) {
+  const changeColor = p.change >= 0 ? 'up' : 'down';
+  const arrow = p.change >= 0 ? '↑' : '↓';
+  
   return `
-    <div class="price-card ${dirClass} tap-scale" data-key="${p.key}" data-name="${p.name}">
-      <div class="price-card__header">
-        <div>
-          <div class="price-card__icon">${p.icon}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="price-card__name">${p.name}</div>
-          <div class="price-card__change ${p.change >= 0 ? 'up' : 'down'}">${p.direction === 'up' ? '▲' : '▼'} ${formatPercent(p.change)}</div>
-        </div>
+    <div class="market-row ${p.direction === 'up' ? 'up' : p.direction === 'down' ? 'down' : ''} btn-chart" data-key="${p.key}" data-name="${p.name}">
+      <div class="market-name-cell">
+        <span class="market-name">${p.name}</span>
+        <span class="market-subname">${p.key.replace('_', ' ').toUpperCase()}</span>
       </div>
-      <div class="price-card__prices">
-        <div class="price-card__price-group">
-          <label>Alış</label>
-          <div class="price-card__price buy">${formatCurrency(p.marginBuy)}</div>
-        </div>
-        <div class="price-card__price-group">
-          <label>Satış</label>
-          <div class="price-card__price sell">${formatCurrency(p.marginSell)}</div>
-        </div>
+      <div class="market-price">${formatCurrency(p.marginBuy).replace('₺', '')}</div>
+      <div class="market-price" style="font-weight:800;">${formatCurrency(p.marginSell).replace('₺', '')}</div>
+      <div class="market-change ${changeColor}">
+        ${arrow} %${Math.abs(p.change).toFixed(2)}
       </div>
-      <div class="price-card__time">${formatTime(p.updatedAt)}</div>
-    </div>
-  `;
-}
-
-function renderCurrencyCard(p) {
-  const dirClass = p.direction === 'up' ? 'is-up' : p.direction === 'down' ? 'is-down' : '';
-  return `
-    <div class="price-card ${dirClass} tap-scale" data-key="${p.key}" data-name="${p.name}" style="padding:var(--space-3) var(--space-4);">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:var(--space-3);">
-          <div class="price-card__icon">${p.icon}</div>
-          <div>
-            <div style="font-weight:600; font-size:var(--font-size-sm);">${p.name}</div>
-            <div class="price-card__change ${p.change >= 0 ? 'up' : 'down'}" style="margin-top:2px;">${p.direction === 'up' ? '▲' : '▼'} ${formatPercent(p.change)}</div>
-          </div>
-        </div>
-        <div style="display:flex; gap:var(--space-6); text-align:right;">
-          <div>
-            <div style="font-size:var(--font-size-xs); color:var(--text-muted);">Alış</div>
-            <div class="price-card__price buy" style="font-size:var(--font-size-md);">${formatCurrency(p.marginBuy)}</div>
-          </div>
-          <div>
-            <div style="font-size:var(--font-size-xs); color:var(--text-muted);">Satış</div>
-            <div class="price-card__price sell" style="font-size:var(--font-size-md);">${formatCurrency(p.marginSell)}</div>
-          </div>
+      <div class="market-action">
+        <div class="btn-chart-small">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
         </div>
       </div>
     </div>
