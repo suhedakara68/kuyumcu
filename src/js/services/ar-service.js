@@ -1,5 +1,5 @@
 // ============================================
-// NOVENTRA AR — Virtual Try-On Service (Super Safe)
+// NOVENTRA AR — Virtual Try-On Service (Final Mobile Stabilizer)
 // ============================================
 
 class ARService {
@@ -17,56 +17,40 @@ class ARService {
     this.video = video;
     this.canvas = canvas;
 
-    this.statusCb("Kütüphaneler yükleniyor...");
+    this.statusCb("Sistem Hazırlanıyor...");
 
     try {
+      // Load dependencies sequentially for maximum stability
       await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', 'THREE');
       await this.loadScript('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js', 'THREE.GLTFLoader');
       await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js', 'Hands');
       await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js', 'Pose');
       await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', 'Camera');
 
-      this.statusCb("3D Dünya kuruluyor...");
       this.setupThree();
-      
-      this.statusCb("Yapay Zeka hazırlanıyor...");
       this.setupAI();
       
       this.isInitialized = true;
     } catch (e) {
-      throw new Error("KRİTİK HATA: " + (e.message || e || "Bilinmeyen Yükleme Hatası"));
+      throw new Error("YÜKLEME HATASI: İnternet bağlantınızı kontrol edin.");
     }
   }
 
   loadScript(url, globalName) {
     return new Promise((resolve, reject) => {
-      // Check if already exists in global scope
       const parts = globalName.split('.');
       let current = window;
       let exists = true;
-      for (const p of parts) {
-        if (!current[p]) { exists = false; break; }
-        current = current[p];
-      }
+      for (const p of parts) { if (!current[p]) { exists = false; break; } current = current[p]; }
       if (exists) return resolve();
 
       const script = document.createElement('script');
       script.src = url;
       script.async = true;
-      script.onload = () => {
-        // Double check after load
-        setTimeout(() => {
-          let check = window;
-          for (const p of parts) {
-            if (!check[p]) { reject(new Error(`${globalName} yüklenemedi.`)); return; }
-            check = check[p];
-          }
-          resolve();
-        }, 100);
-      };
-      script.onerror = () => reject(new Error(`${url} adresine ulaşılamadı.`));
+      script.onload = () => { setTimeout(resolve, 200); };
+      script.onerror = () => reject(new Error(`${globalName} indirilemedi.`));
       document.head.appendChild(script);
-      setTimeout(() => reject(new Error(`${globalName} için zaman aşımı.`)), 20000);
+      setTimeout(() => reject(new Error(`${globalName} zaman aşımı.`)), 25000);
     });
   }
 
@@ -89,13 +73,16 @@ class ARService {
   }
 
   setupAI() {
-    this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-    this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5 });
-    this.hands.onResults((res) => { if (this.isTracking && this.mode === 'hand') this.updatePos(res); });
-
-    this.pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
-    this.pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5 });
-    this.pose.onResults((res) => { if (this.isTracking && this.mode === 'pose') this.updatePos(res); });
+    if (typeof Hands !== 'undefined') {
+      this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+      this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5 });
+      this.hands.onResults((res) => { if (this.isTracking && this.mode === 'hand') this.updatePos(res); });
+    }
+    if (typeof Pose !== 'undefined') {
+      this.pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
+      this.pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5 });
+      this.pose.onResults((res) => { if (this.isTracking && this.mode === 'pose') this.updatePos(res); });
+    }
   }
 
   updatePos(res) {
@@ -120,24 +107,31 @@ class ARService {
     this.mode = mode;
     this.isTracking = true;
     if (!this.camera) {
+      // Use standard camera settings for maximum compatibility
       this.camera = new Camera(this.video, {
         onFrame: async () => {
           if (!this.isTracking) return;
-          if (this.mode === 'hand') await this.hands.send({ image: this.video });
-          else await this.pose.send({ image: this.video });
-        },
-        width: 640, height: 480
+          try {
+            if (this.mode === 'hand' && this.hands) await this.hands.send({ image: this.video });
+            else if (this.mode === 'pose' && this.pose) await this.pose.send({ image: this.video });
+          } catch (e) {}
+        }
       });
     }
-    await this.camera.start();
+    
+    try {
+      await this.camera.start();
+    } catch (e) {
+      throw new Error("Kamera İzni Alınamadı: Lütfen tarayıcı ayarlarından kameraya izin verin.");
+    }
   }
 
   async loadModel(url) {
     if (!url || !THREE.GLTFLoader) return;
     const loader = new THREE.GLTFLoader();
     this.modelGroup.clear();
-    return new Promise((res, rej) => {
-      loader.load(url, (gltf) => { this.modelGroup.add(gltf.scene); res(); }, undefined, rej);
+    return new Promise((res) => {
+      loader.load(url, (gltf) => { this.modelGroup.add(gltf.scene); res(); }, undefined, () => res());
     });
   }
 

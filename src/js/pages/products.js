@@ -119,20 +119,19 @@ async function openAR(product) {
     status.style.display = 'none';
   } catch (err) {
     console.error("AR Error Object:", err);
-    const errMsg = err.message || (typeof err === 'string' ? err : JSON.stringify(err));
-    status.textContent = "HATA: " + errMsg;
-    status.style.background = "#c0392b";
-    status.style.padding = "20px";
-    status.style.width = "80%";
+    let errMsg = "Bir hata oluştu.";
     
-    // Don't close immediately so the user can read the error
+    if (err.message) errMsg = err.message;
+    else if (typeof err === 'object' && err.isTrusted) errMsg = "Kamera erişimi reddedildi veya internet bağlantısı kesildi.";
+    else if (typeof err === 'string') errMsg = err;
+
+    status.textContent = errMsg;
+    status.style.background = "#c0392b";
+    
     setTimeout(() => { 
-      if (confirm("Hata oluştu, sayfa yenilensin mi?")) {
-        location.reload();
-      } else {
-        modal.style.display = 'none';
-      }
-    }, 6000);
+       modal.style.display = 'none';
+       arService.stop();
+    }, 5000);
   }
 }
 
