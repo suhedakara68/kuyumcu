@@ -1,95 +1,91 @@
 // ============================================
-// NOVENTRA PWA — Portfolio Service
+// NOVENTRA PWA — Portfolio Service (Firebase Sync)
 // ============================================
 import { saveData, loadData } from './firebase-service.js';
-import { updateGoalProgress } from './goal-service.js';
 
 const STORAGE_KEY = 'noventra_portfolio';
-let assets = [];
 
+export const ASSET_TYPES = {
+  GRAM: { id: 'gram', label: 'Has Altın (Gram)', multiplier: 1, unit: 'gr' },
+  BILEZIK_22: { id: 'bilezik_22', label: '22 Ayar Bilezik', multiplier: 0.916, unit: 'gr' },
+  KOLYE_14: { id: 'kolye_14', label: '14 Ayar Kolye', multiplier: 0.585, unit: 'gr' },
+  CEYREK: { id: 'ceyrek', label: 'Çeyrek Altın', multiplier: 1.6065, unit: 'Adet' },
+  YARIM: { id: 'yarim', label: 'Yarım Altın', multiplier: 3.213, unit: 'Adet' },
+  TAM: { id: 'tam', label: 'Tam Altın', multiplier: 6.426, unit: 'Adet' },
+  ATA: { id: 'ata', label: 'Ata Lira', multiplier: 6.608, unit: 'Adet' }
+};
+
+let portfolio = [];
+
+/**
+ * Initialize Portfolio from Cloud and Local fallback
+ */
 export async function initPortfolio() {
-  // Load from cloud and merge
-  const cloudData = await loadData('portfolios');
-  if (cloudData && cloudData.items) {
-    assets = cloudData.items;
-    savePortfolio();
-  } else {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    assets = saved ? JSON.parse(saved) : [];
+  try {
+    const cloudData = await loadData('portfolio');
+    if (cloudData && cloudData.items) {
+      portfolio = cloudData.items;
+      saveLocal(); // Sync local with cloud
+      console.log('Portföy buluttan yüklendi.');
+    } else {
+      loadLocal();
+    }
+  } catch (e) {
+    console.warn('Bulut yükleme hatası, yerel veriye dönülüyor:', e);
+    loadLocal();
   }
 }
 
-export function getAssets() {
-  return [...assets];
-}
-
 export function getPortfolio() {
-  return getAssets();
+  return [...portfolio];
 }
 
-
-export function addAsset(asset) {
-  const newAsset = {
+export async function addAsset(typeId, amount, purchasePrice = 0) {
+  const asset = {
     id: Date.now().toString(),
-    symbol: asset.symbol,     // 'gram_altin', 'usd_try' etc.
-    label: asset.label,
-    amount: parseFloat(asset.amount),
-    buyPrice: parseFloat(asset.buyPrice),
-    date: asset.date || new Date().toISOString()
+    typeId,
+    amount: parseFloat(amount),
+    purchasePrice: parseFloat(purchasePrice),
+    date: new Date().toISOString()
   };
   
-  assets.push(newAsset);
-  savePortfolio();
-  return newAsset;
+  portfolio.push(asset);
+  await savePortfolio();
+  return asset;
 }
 
-export function deleteAsset(id) {
-  assets = assets.filter(a => a.id !== id);
-  savePortfolio();
+export async function deleteAsset(id) {
+  portfolio = portfolio.filter(a => a.id !== id);
+  await savePortfolio();
 }
 
-export function calculateSummary(currentPrices) {
-  let totalValue = 0;
-  let totalCost = 0;
-  
-  const detailedAssets = assets.map(asset => {
-    const priceData = currentPrices[asset.symbol];
-    const currentPrice = priceData ? priceData.marginSell : 0;
-    const value = asset.amount * currentPrice;
-    const cost = asset.amount * asset.buyPrice;
-    const profit = value - cost;
-    const profitPercent = cost > 0 ? (profit / cost) * 100 : 0;
-    
-    totalValue += value;
-    totalCost += cost;
-    
-    return {
-      ...asset,
-      currentPrice,
-      value,
-      cost,
-      profit,
-      profitPercent
-    };
-  });
-  
-  const totalProfit = totalValue - totalCost;
-  const totalProfitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-  
-  return {
-    assets: detailedAssets,
-    totalValue,
-    totalCost,
-    totalProfit,
-    totalProfitPercent
-  };
+export function calculateAssetValue(asset, currentGramPrice) {
+  const type = Object.values(ASSET_TYPES).find(t => t.id === asset.typeId);
+  if (!type) return 0;
+  return asset.amount * type.multiplier * currentGramPrice;
 }
 
-function savePortfolio() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
-  saveData('portfolios', { items: assets, updatedAt: new Date() });
-  
-  // Update goals based on new assets
-  const goldAssets = assets.filter(a => a.symbol === 'gram_altin' || a.symbol === 'ceyrek_altin' || a.symbol === 'bilezik_22' || a.symbol === 'ata_altin');
-  updateGoalProgress(goldAssets.map(a => ({ type: 'gold', amount: a.amount })));
+export function calculateTotalValue(currentGramPrice) {
+  return portfolio.reduce((sum, asset) => sum + calculateAssetValue(asset, currentGramPrice), 0);
+}
+
+/**
+ * Save to both Local and Cloud
+ */
+async function savePortfolio() {
+  saveLocal();
+  try {
+    await saveData('portfolio', { items: portfolio, updatedAt: new Date().toISOString() });
+  } catch (e) {
+    console.error('Buluta kaydedilemedi:', e);
+  }
+}
+
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio));
+}
+
+function loadLocal() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  portfolio = data ? JSON.parse(data) : [];
 }
