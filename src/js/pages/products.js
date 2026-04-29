@@ -333,49 +333,68 @@ async function openAR(product) {
   if (!modal || !video || !overlay) return;
 
   modal.classList.add('active');
-  overlay.src = product.image;
   
-  // Update Product UI
-  document.getElementById('ar-product-name').textContent = product.name;
-  const price = calculateProductPrice(product, currentGramPrice);
-  document.getElementById('ar-product-price').textContent = formatCurrency(price);
+  try {
+    // Update Product UI
+    document.getElementById('ar-product-name').textContent = product.name;
+    const price = calculateProductPrice(product, currentGramPrice);
+    document.getElementById('ar-product-price').textContent = formatCurrency(price);
 
-  // Initialize AR Service
-  status.textContent = 'Kamera ve yapay zeka hazırlanıyor...';
-  await arService.init(video, canvas);
-  
-  // Decide tracking mode based on category
-  const trackMode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
-  
-  arService.start(trackMode, (results) => {
-    if (arMode !== 'auto') return;
+    status.style.opacity = '1';
+    status.textContent = 'Sistem yükleniyor...';
+
+    // Initialize AR Service
+    await arService.init(video, canvas);
     
-    let pos = null;
-    if (product.category === 'yuzuk') {
-      pos = arService.getRingPosition(results);
-    } else if (product.category === 'bilezik') {
-      pos = arService.getBraceletPosition(results);
-    } else if (product.category === 'kolye') {
-      pos = arService.getNecklacePosition(results);
+    status.textContent = 'Kamera başlatılıyor...';
+    
+    // Decide tracking mode
+    const trackMode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
+    
+    await arService.start(trackMode, (results) => {
+      if (arMode !== 'auto') return;
+      
+      let pos = null;
+      if (product.category === 'yuzuk') {
+        pos = arService.getRingPosition(results);
+      } else if (product.category === 'bilezik') {
+        pos = arService.getBraceletPosition(results);
+      } else if (product.category === 'kolye') {
+        pos = arService.getNecklacePosition(results);
+      }
+
+      if (pos) {
+        status.style.opacity = '0';
+        isSnapActive = true;
+        autoX = autoX * 0.8 + (pos.x * 100) * 0.2;
+        autoY = autoY * 0.8 + (pos.y * 100) * 0.2;
+        autoScale = autoScale * 0.8 + pos.scale * 0.2;
+        autoRot = autoRot * 0.8 + (pos.rotation * 180 / Math.PI) * 0.2;
+        updateARTransform();
+      } else {
+        status.style.opacity = '1';
+        status.textContent = `${product.category === 'kolye' ? 'Boynunuzu' : 'Elinizi'} gösterin`;
+        isSnapActive = false;
+      }
+    });
+
+    // Load 3D Model if available
+    if (product.model3d) {
+      status.textContent = '3D Model yükleniyor...';
+      try {
+         await arService.loadModel(product.model3d);
+      } catch (e) {
+         console.warn("3D Model yüklenemedi, 2D moduna geçiliyor.", e);
+      }
     }
 
-    if (pos) {
-      status.style.opacity = '0';
-      isSnapActive = true;
-      // Smooth interpolation
-      autoX = autoX * 0.7 + (pos.x * 100) * 0.3;
-      autoY = autoY * 0.7 + (pos.y * 100) * 0.3;
-      autoScale = autoScale * 0.7 + pos.scale * 0.3;
-      autoRot = autoRot * 0.7 + (pos.rotation * 180 / Math.PI) * 0.3;
-      updateARTransform();
-    } else {
-      status.style.opacity = '1';
-      status.textContent = `${product.category === 'kolye' ? 'Boynunuzu' : 'Elinizi'} kameraya yaklaştırın`;
-      isSnapActive = false;
-    }
-  });
-
-  setupARListeners(overlay);
+    setupARListeners(overlay);
+    
+  } catch (err) {
+    console.error("AR Başlatma Hatası:", err);
+    status.textContent = 'Hata: Kamera izni verilmedi veya cihaz desteklemiyor.';
+    status.style.background = 'var(--color-danger)';
+  }
 }
 
 function setupARListeners(overlay) {
@@ -491,13 +510,13 @@ function renderCategories() {
 document.addEventListener('click', (e) => {
   if (e.target.id === 'close-ar' || e.target.closest('#close-ar')) {
     document.getElementById('ar-modal').classList.remove('active');
-    if (arStream) arStream.getTracks().forEach(t => t.stop());
+    arService.stop();
   }
 
   if (e.target.id === 'ar-add-to-cart') {
     alert("Ürün sepetinize eklendi!");
     document.getElementById('ar-modal').classList.remove('active');
-    if (arStream) arStream.getTracks().forEach(t => t.stop());
+    arService.stop();
   }
 
   if (e.target.id === 'btn-ar-share') {
