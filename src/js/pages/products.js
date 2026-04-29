@@ -56,6 +56,7 @@ function ensureARModalExists() {
       </div>
       
       <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1); background:#000;"></video>
+      <div id="ar-frozen-bg" style="display:none; position:absolute; inset:0; z-index:5; background-size:cover; background-position:center; transform:scaleX(-1);"></div>
       <canvas id="ar-canvas" style="position:absolute; inset:0; width:100%; height:100%; z-index:50; pointer-events:none;"></canvas>
       
       <div id="ar-status" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.8); color:white; padding:15px 25px; border-radius:30px; font-size:14px; z-index:200; text-align:center;">
@@ -63,6 +64,12 @@ function ensureARModalExists() {
       </div>
 
       <div style="position:absolute; bottom:0; left:0; right:0; padding:40px 20px; background:linear-gradient(to top, rgba(0,0,0,1), transparent); z-index:100;">
+        <div style="display:flex; justify-content:center; margin-bottom:30px;">
+           <button id="btn-snapshot" style="width:64px; height:64px; border-radius:50%; background:white; border:5px solid rgba(212,168,83,0.5); box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+              <div style="width:20px; height:20px; background:#333; border-radius:3px;"></div>
+           </button>
+           <button id="btn-reset-ar" style="display:none; width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.2); border:none; color:white; margin-left:20px; display:flex; align-items:center; justify-content:center;">↺</button>
+        </div>
         <h3 id="ar-product-name" style="color:white; margin:0; font-size:18px;">Ürün</h3>
         <div id="ar-product-price" style="color:var(--gold-500); font-size:22px; font-weight:bold;">0.00 TL</div>
         <button id="ar-buy-btn" style="width:100%; background:var(--gold-500); border:none; padding:15px; border-radius:12px; margin-top:15px; font-weight:bold; font-size:16px;">SEPETE EKLE</button>
@@ -82,7 +89,26 @@ function setupGlobalListeners() {
 
     if (e.target.id === 'close-ar') {
       document.getElementById('ar-modal').style.display = 'none';
+      document.getElementById('ar-frozen-bg').style.display = 'none';
       arService.stop();
+    }
+
+    if (e.target.id === 'btn-snapshot') {
+      const bgData = await arService.takeSnapshot();
+      const frozenBg = document.getElementById('ar-frozen-bg');
+      frozenBg.style.backgroundImage = `url(${bgData})`;
+      frozenBg.style.display = 'block';
+      document.getElementById('ar-video').style.display = 'none';
+      document.getElementById('btn-reset-ar').style.display = 'flex';
+      document.getElementById('btn-snapshot').style.display = 'none';
+    }
+
+    if (e.target.id === 'btn-reset-ar') {
+      document.getElementById('ar-frozen-bg').style.display = 'none';
+      document.getElementById('ar-video').style.display = 'block';
+      document.getElementById('btn-reset-ar').style.display = 'none';
+      document.getElementById('btn-snapshot').style.display = 'flex';
+      arService.start(arService.mode);
     }
 
     if (e.target.id === 'ar-buy-btn') {

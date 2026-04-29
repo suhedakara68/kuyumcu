@@ -1,13 +1,13 @@
 // ============================================
-// NOVENTRA AR — Virtual Try-On Service (Visual Debug & Fallback)
+// NOVENTRA AR — Virtual Try-On Service (Snapshot & Blend)
 // ============================================
 
 class ARService {
   constructor() {
     this.isInitialized = false;
     this.isTracking = false;
+    this.isFrozen = false;
     this.modelGroup = null;
-    this.fallbackMesh = null;
     this.debugDots = [];
   }
 
@@ -55,23 +55,11 @@ class ARService {
     this.modelGroup = new THREE.Group();
     this.threeCamera = new THREE.PerspectiveCamera(45, this.canvas.clientWidth / this.canvas.clientHeight, 0.1, 1000);
     this.threeCamera.position.z = 5;
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight, false);
     
-    // Bright lighting for jewelry
     this.scene.add(new THREE.AmbientLight(0xffffff, 2));
-    const p1 = new THREE.PointLight(0xffffff, 2); p1.position.set(2, 2, 5); this.scene.add(p1);
-    const p2 = new THREE.PointLight(0xffd700, 1); p2.position.set(-2, -2, 3); this.scene.add(p2);
-
-    // Debug Dots (Visual AI Feedback)
-    const dotGeo = new THREE.SphereGeometry(0.05, 8, 8);
-    const dotMat = new THREE.MeshBasicMaterial({ color: 0xd4a853 });
-    for(let i=0; i<3; i++) {
-      const dot = new THREE.Mesh(dotGeo, dotMat);
-      dot.visible = false;
-      this.scene.add(dot);
-      this.debugDots.push(dot);
-    }
+    const p1 = new THREE.PointLight(0xffffff, 1.5); p1.position.set(2, 2, 5); this.scene.add(p1);
 
     this.scene.add(this.modelGroup);
     const animate = () => { if(this.renderer) { requestAnimationFrame(animate); this.renderer.render(this.scene, this.threeCamera); }};
@@ -89,18 +77,15 @@ class ARService {
   }
 
   onResults(results) {
-    if (!this.isTracking) return;
+    if (!this.isTracking || this.isFrozen) return;
     
     let target = null;
     if (this.mode === 'hand' && results.multiHandLandmarks?.length > 0) {
       const lm = results.multiHandLandmarks[0];
       target = { x: lm[0].x, y: lm[0].y, z: lm[0].z, scale: Math.sqrt(Math.pow(lm[17].x - lm[5].x, 2)) * 6 };
-      // Show debug dots on wrist and index
-      this.updateDebugDots([lm[0], lm[5], lm[17]]);
     } else if (this.mode === 'pose' && results.poseLandmarks) {
       const lm = results.poseLandmarks;
       target = { x: (lm[11].x + lm[12].x)/2, y: (lm[11].y + lm[12].y)/2 + 0.1, scale: Math.sqrt(Math.pow(lm[11].x - lm[12].x, 2)) * 4 };
-      this.updateDebugDots([lm[11], lm[12], {x: target.x, y: target.y}]);
     }
 
     if (target) {
@@ -109,26 +94,31 @@ class ARService {
       this.modelGroup.scale.setScalar(target.scale);
     } else {
       this.modelGroup.visible = false;
-      this.debugDots.forEach(d => d.visible = false);
     }
   }
 
-  updateDebugDots(points) {
-    points.forEach((p, i) => {
-      if (this.debugDots[i]) {
-        this.debugDots[i].visible = true;
-        this.debugDots[i].position.set((p.x - 0.5) * 5, -(p.y - 0.5) * 7, 0.1);
-      }
-    });
+  async takeSnapshot() {
+    this.isFrozen = true;
+    if (this.camera) this.camera.stop();
+    
+    // Create a static background from the current video frame
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = this.video.videoWidth;
+    tempCanvas.height = this.video.videoHeight;
+    tempCanvas.getContext('2d').drawImage(this.video, 0, 0);
+    
+    const bgData = tempCanvas.toDataURL('image/jpeg');
+    return bgData;
   }
 
   async start(mode = 'hand') {
     this.mode = mode;
     this.isTracking = true;
+    this.isFrozen = false;
     if (!this.camera) {
       this.camera = new Camera(this.video, {
         onFrame: async () => {
-          if (!this.isTracking) return;
+          if (!this.isTracking || this.isFrozen) return;
           try {
             if (this.mode === 'hand') await this.hands.send({ image: this.video });
             else await this.pose.send({ image: this.video });
@@ -153,10 +143,16 @@ class ARService {
       } catch (e) { console.warn("3D failed, using 2D"); }
     }
 
-    // Fallback to 2D Image in 3D Space
+    // Fallback to 2D Image with Multiply Blending to remove white background
     if (fallbackImg) {
       const tex = new THREE.TextureLoader().load(fallbackImg);
-      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+      // MultiplyBlending requires white background on source to work effectively
+      const mat = new THREE.MeshBasicMaterial({ 
+        map: tex, 
+        transparent: true, 
+        blending: THREE.MultiplyBlending,
+        side: THREE.DoubleSide 
+      });
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
       this.modelGroup.add(plane);
     }
@@ -164,9 +160,9 @@ class ARService {
 
   stop() {
     this.isTracking = false;
+    this.isFrozen = false;
     if (this.camera) this.camera.stop();
     if (this.modelGroup) this.modelGroup.visible = false;
-    this.debugDots.forEach(d => d.visible = false);
   }
 }
 
