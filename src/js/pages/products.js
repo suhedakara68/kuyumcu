@@ -5,6 +5,8 @@ import { getProducts, CATEGORIES, calculateProductPrice } from '../services/prod
 import { onPriceUpdate } from '../services/price-service.js';
 import { formatCurrency, formatNumber } from '../utils/formatters.js';
 import { navigate } from '../router.js';
+import { arService } from '../services/ar-service.js';
+
 
 let unsubscribe = null;
 let currentGramPrice = 0;
@@ -98,73 +100,78 @@ function initTemplate(container) {
     <div class="modal-overlay" id="ar-modal">
       <div class="modal ar-modal-content" style="height:100dvh; width:100vw; max-width:none; padding:0; overflow:hidden; background:#000; border:none; border-radius:0; margin:0;">
         <!-- Header -->
-        <div class="ar-header" style="position:absolute; top:0; left:0; right:0; padding:15px; display:flex; justify-content:space-between; align-items:center; z-index:100; background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);">
-          <div style="color:white; font-size:10px; opacity:0.8; font-weight:500;">Görseller örnektir. Boyut farklılık gösterebilir.</div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn-icon" id="btn-ar-share" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); color:white; border-radius:50%; width:36px; height:36px; border:none; display:flex; align-items:center; justify-content:center;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            </button>
-            <button class="btn-icon" id="close-ar" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); color:white; border-radius:50%; width:36px; height:36px; border:none; display:flex; align-items:center; justify-content:center;">✕</button>
-          </div>
+        <div class="ar-header" style="position:absolute; top:0; left:0; right:0; padding:20px; display:flex; justify-content:space-between; align-items:center; z-index:100; background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);">
+          <div style="color:white; font-size:12px; font-weight:500; letter-spacing:0.5px;">NOVENTRA <span style="color:var(--gold-500);">AR</span></div>
+          <button class="btn-icon" id="close-ar" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); color:white; border-radius:50%; width:40px; height:40px; border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">✕</button>
         </div>
 
-        <div id="ar-view-container" style="width:100%; height:100%; position:relative;">
-          <!-- Desktop QR View -->
-          <div id="ar-desktop-qr" style="display:none; width:100%; height:100%; background:var(--bg-primary); flex-direction:column; align-items:center; justify-content:center; padding:40px; text-align:center;">
-             <div style="background:white; padding:20px; border-radius:24px; margin-bottom:24px; box-shadow:0 10px 40px rgba(212,168,83,0.3);">
-                <img id="ar-qr-img" src="" style="width:200px; height:200px;">
-             </div>
-             <h3 style="color:white; margin-bottom:12px;">Telefonda Dene</h3>
-             <p style="color:var(--text-muted); font-size:14px; margin-bottom:40px; max-width:280px;">QR kodu kameranızla tarayarak ürünü kolunuzda hemen deneyin.</p>
-             <div style="display:flex; background:var(--bg-surface); padding:10px 20px; border-radius:30px; gap:12px; align-items:center;">
-                <span class="ar-tab active" style="color:var(--gold-500); font-weight:600; font-size:12px;">Resimde Gör</span>
-                <span class="ar-tab" style="color:var(--text-muted); font-size:12px;">Kolumda Gör</span>
-                <span class="ar-tab" style="color:var(--text-muted); font-size:12px;">Karşılaştır</span>
-             </div>
+        <div id="ar-view-container" style="width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+          <!-- Video Feed -->
+          <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scaleX(-1);"></video>
+          
+          <!-- AR Canvas for Three.js (Now the main 3D layer) -->
+          <canvas id="ar-canvas" style="position:absolute; inset:0; width:100%; height:100%; z-index:10; pointer-events:none;"></canvas>
+
+          <!-- Premium AR HUD Elements -->
+          <div class="ar-hud" style="position:absolute; inset:0; pointer-events:none; z-index:20;">
+             <!-- Scanning Line -->
+             <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:linear-gradient(90deg, transparent, var(--gold-500), transparent); box-shadow:0 0 15px var(--gold-500); animation: scanLoop 3s linear infinite; opacity:0.3;"></div>
+             
+             <!-- Corner Guides -->
+             <div style="position:absolute; top:40px; left:40px; width:30px; height:30px; border-top:2px solid rgba(212,168,83,0.5); border-left:2px solid rgba(212,168,83,0.5);"></div>
+             <div style="position:absolute; top:40px; right:40px; width:30px; height:30px; border-top:2px solid rgba(212,168,83,0.5); border-right:2px solid rgba(212,168,83,0.5);"></div>
+             <div style="position:absolute; bottom:180px; left:40px; width:30px; height:30px; border-bottom:2px solid rgba(212,168,83,0.5); border-left:2px solid rgba(212,168,83,0.5);"></div>
+             <div style="position:absolute; bottom:180px; right:40px; width:30px; height:30px; border-bottom:2px solid rgba(212,168,83,0.5); border-right:2px solid rgba(212,168,83,0.5);"></div>
+
+             <!-- Branding -->
+             <div style="position:absolute; top:80px; left:20px; color:white; opacity:0.3; font-size:9px; letter-spacing:2px; transform:rotate(-90deg); transform-origin:left top;">LUXURY EXPERIENCE</div>
           </div>
 
-          <!-- Mobile Camera View -->
-          <div id="ar-mobile-view" style="display:none; width:100%; height:100%; position:relative;">
-            <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-            <div class="ar-overlay-mask" style="position:absolute; inset:0; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.2) 100%); pointer-events:none;"></div>
-            
-            <img id="ar-overlay-img" src="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; pointer-events:auto; cursor:move; transition: none; filter: drop-shadow(0 15px 35px rgba(0,0,0,0.4)) contrast(1.05) brightness(1.05);">
-            
-            <div id="ar-hint-box" style="position:absolute; top:40%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); padding:12px 20px; border-radius:12px; color:white; text-align:center; z-index:10; pointer-events:none; transition: opacity 0.5s;">
-               <div style="font-size:24px; margin-bottom:8px;">↔️</div>
-               <div style="font-size:13px; font-weight:500;">Ürüne dokunup sürükleyin</div>
-            </div>
+          <!-- Interaction Hint -->
+          <div id="ar-hint" style="position:absolute; bottom:180px; left:50%; transform:translateX(-50%); text-align:center; color:white; opacity:0; transition: opacity 0.5s; z-index:90;">
+             <div style="font-size:24px; margin-bottom:8px;">🤌</div>
+             <div style="font-size:12px; font-weight:500; text-shadow:0 2px 4px rgba(0,0,0,0.5);">İki parmağınızla boyutlandırın</div>
+          </div>
 
-            <!-- Branding -->
-            <div style="position:absolute; top:80px; left:20px; color:white; opacity:0.3; font-size:10px; z-index:10; font-family:serif;">
-               Powered by<br><strong style="letter-spacing:1px;">NOVENTRA</strong>
-            </div>
+          <!-- Bottom Controls -->
+          <div class="ar-controls" style="position:absolute; bottom:0; left:0; right:0; background:linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 50%, transparent 100%); padding:20px 20px 40px 20px; z-index:100;">
+             
+             <!-- Adjustment Sliders (Hidden by default, toggleable) -->
+             <div id="ar-adjustments" style="display:none; flex-direction:column; gap:15px; margin-bottom:20px; padding:20px; background:rgba(255,255,255,0.05); border-radius:16px; border:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex; justify-content:space-between; color:white; font-size:11px;"><span>Boyut</span><span id="val-scale">1.0</span></div>
+                <input type="range" id="ar-scale-slider" min="0.2" max="3" step="0.05" value="1" style="width:100%; accent-color:var(--gold-500);">
+                
+                <div style="display:flex; justify-content:space-between; color:white; font-size:11px;"><span>Döndür</span><span id="val-rot">0°</span></div>
+                <input type="range" id="ar-rot-slider" min="-180" max="180" step="1" value="0" style="width:100%; accent-color:var(--gold-500);">
+             </div>
 
-            <!-- Mobile Bottom Bar -->
-            <div style="position:absolute; bottom:0; left:0; right:0; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding:20px; z-index:100;">
-              <div style="display:flex; background:rgba(255,255,255,0.95); padding:4px; border-radius:30px; margin-bottom:20px; width:fit-content; margin-inline:auto;">
-                <button class="ar-mode-btn" style="padding:10px 15px; border-radius:26px; border:none; background:none; font-size:12px; font-weight:600;">Resimde Gör</button>
-                <button class="ar-mode-btn active" style="padding:10px 15px; border-radius:26px; border:none; background:#000; color:#fff; font-size:12px; font-weight:600;">Kolumda Gör</button>
-                <button class="ar-mode-btn" style="padding:10px 15px; border-radius:26px; border:none; background:none; font-size:12px; font-weight:600;">Karşılaştır</button>
-              </div>
-
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div id="ar-product-info">
-                   <div id="ar-product-name" style="color:white; font-size:13px; font-weight:600; margin-bottom:2px;">Ürün Yükleniyor...</div>
-                   <div id="ar-product-price" style="color:var(--gold-500); font-size:16px; font-weight:800;">0.00 TL</div>
+             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:15px;">
+                <div style="flex:1;">
+                   <div id="ar-product-name" style="color:white; font-size:14px; font-weight:700; margin-bottom:2px;">Altın Kolye</div>
+                   <div id="ar-product-price" style="color:var(--gold-500); font-size:18px; font-weight:800;">0.00 TL</div>
                 </div>
-                <button class="btn btn-gold" id="ar-add-to-cart" style="padding:12px 24px; border-radius:8px; font-weight:700;">SEPETE EKLE</button>
-              </div>
-            </div>
+                
+                <div style="display:flex; gap:10px;">
+                   <button id="btn-toggle-adjust" style="width:48px; height:48px; border-radius:12px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; display:flex; align-items:center; justify-content:center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-8m0-4V4m-5 16v-5m0-4V4m10 16v-2m0-4V4M3 12h18"/></svg>
+                   </button>
+                   <button class="btn btn-gold" id="ar-buy-now" style="height:48px; padding:0 30px; border-radius:12px; font-weight:800; font-size:13px; letter-spacing:0.5px;">SATIN AL</button>
+                </div>
+             </div>
 
-            <!-- Quick Controls -->
-            <button id="btn-ar-camera" style="position:absolute; bottom:100px; left:20px; width:44px; height:44px; border-radius:50%; background:white; border:none; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:101;">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </button>
+             <!-- Mode Selector -->
+             <div style="margin-top:25px; display:flex; justify-content:center; gap:20px;">
+                <button class="ar-mode-tab active" data-mode="auto" style="background:none; border:none; color:white; font-size:12px; font-weight:700; padding:5px 0; border-bottom:2px solid var(--gold-500);">OTOMATİK</button>
+                <button class="ar-mode-tab" data-mode="manual" style="background:none; border:none; color:var(--text-muted); font-size:12px; font-weight:600; padding:5px 0;">MANUEL</button>
+             </div>
           </div>
+
+          <!-- Photo Flash Animation Overlay -->
+          <div id="ar-flash" style="position:absolute; inset:0; background:white; opacity:0; pointer-events:none; z-index:200;"></div>
         </div>
       </div>
     </div>
+
   `;
 }
 
@@ -311,137 +318,163 @@ function openCompareModal() {
 }
 
 // AR Functions & Interactions
-let arStream = null;
-let currentFacingMode = 'environment';
-let currentX = 0, currentY = 0;
-let arScale = 1;
-let arRotation = 0;
+let arMode = 'auto'; // 'auto' or 'manual'
+let autoX = 0, autoY = 0, autoScale = 1, autoRot = 0;
+let manualX = 0, manualY = 0, manualScale = 1, manualRot = 0;
+let isSnapActive = false;
 
 async function openAR(product) {
   const modal = document.getElementById('ar-modal');
   const video = document.getElementById('ar-video');
   const overlay = document.getElementById('ar-overlay-img');
-  const desktopView = document.getElementById('ar-desktop-qr');
-  const mobileView = document.getElementById('ar-mobile-view');
+  const status = document.getElementById('ar-status');
+  const canvas = document.getElementById('ar-canvas');
+  
   if (!modal || !video || !overlay) return;
 
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   modal.classList.add('active');
   overlay.src = product.image;
-
-  // Update UI with product info
+  
+  // Update Product UI
   document.getElementById('ar-product-name').textContent = product.name;
   const price = calculateProductPrice(product, currentGramPrice);
   document.getElementById('ar-product-price').textContent = formatCurrency(price);
 
-  if (!isMobile) {
-    desktopView.style.display = 'flex';
-    mobileView.style.display = 'none';
+  // Initialize AR Service
+  status.textContent = 'Kamera ve yapay zeka hazırlanıyor...';
+  await arService.init(video, canvas);
+  
+  // Decide tracking mode based on category
+  const trackMode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
+  
+  arService.start(trackMode, (results) => {
+    if (arMode !== 'auto') return;
     
-    // Generate QR (pointing to current URL)
-    const currentUrl = window.location.href;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(currentUrl)}`;
-    document.getElementById('ar-qr-img').src = qrUrl;
-    return;
-  }
+    let pos = null;
+    if (product.category === 'yuzuk') {
+      pos = arService.getRingPosition(results);
+    } else if (product.category === 'bilezik') {
+      pos = arService.getBraceletPosition(results);
+    } else if (product.category === 'kolye') {
+      pos = arService.getNecklacePosition(results);
+    }
 
-  // Mobile Experience
-  desktopView.style.display = 'none';
-  mobileView.style.display = 'block';
-  
-  // Reset state
-  currentX = 0; currentY = 0; arScale = 1; arRotation = 0;
-  updateOverlayTransform();
-  
-  const hintBox = document.getElementById('ar-hint-box');
-  hintBox.style.opacity = '1';
+    if (pos) {
+      status.style.opacity = '0';
+      isSnapActive = true;
+      // Smooth interpolation
+      autoX = autoX * 0.7 + (pos.x * 100) * 0.3;
+      autoY = autoY * 0.7 + (pos.y * 100) * 0.3;
+      autoScale = autoScale * 0.7 + pos.scale * 0.3;
+      autoRot = autoRot * 0.7 + (pos.rotation * 180 / Math.PI) * 0.3;
+      updateARTransform();
+    } else {
+      status.style.opacity = '1';
+      status.textContent = `${product.category === 'kolye' ? 'Boynunuzu' : 'Elinizi'} kameraya yaklaştırın`;
+      isSnapActive = false;
+    }
+  });
 
-  // Interaction Logic (Touch & Drag)
+  setupARListeners(overlay);
+}
+
+function setupARListeners(overlay) {
+  const sliders = document.getElementById('ar-adjustments');
+  const btnToggle = document.getElementById('btn-toggle-adjust');
+  const scaleSlider = document.getElementById('ar-scale-slider');
+  const rotSlider = document.getElementById('ar-rot-slider');
+  const tabs = document.querySelectorAll('.ar-mode-tab');
+
+  btnToggle.onclick = () => {
+    sliders.style.display = sliders.style.display === 'none' ? 'flex' : 'none';
+    btnToggle.style.background = sliders.style.display === 'none' ? 'rgba(255,255,255,0.1)' : 'var(--gold-500)';
+  };
+
+  scaleSlider.oninput = (e) => {
+    manualScale = parseFloat(e.target.value);
+    document.getElementById('val-scale').textContent = manualScale.toFixed(1);
+    updateARTransform();
+  };
+
+  rotSlider.oninput = (e) => {
+    manualRot = parseInt(e.target.value);
+    document.getElementById('val-rot').textContent = manualRot + '°';
+    updateARTransform();
+  };
+
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      arMode = tab.dataset.mode;
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.style.color = 'var(--text-muted)';
+        t.style.borderBottom = 'none';
+      });
+      tab.classList.add('active');
+      tab.style.color = 'white';
+      tab.style.borderBottom = '2px solid var(--gold-500)';
+      
+      // Reset manual if switching to auto
+      if (arMode === 'auto') {
+        document.getElementById('ar-status').style.display = 'block';
+      } else {
+        document.getElementById('ar-status').style.display = 'none';
+      }
+      updateARTransform();
+    };
+  });
+
+  // Drag logic for manual mode
   let isDragging = false;
   let startX, startY;
 
   const startDrag = (e) => {
+    if (arMode !== 'manual') return;
     isDragging = true;
     const pos = e.type === 'touchstart' ? e.touches[0] : e;
-    startX = pos.clientX - currentX;
-    startY = pos.clientY - currentY;
-    hintBox.style.opacity = '0';
+    startX = pos.clientX - manualX;
+    startY = pos.clientY - manualY;
   };
 
   const doDrag = (e) => {
-    if (!isDragging) return;
+    if (!isDragging || arMode !== 'manual') return;
     if (e.type === 'touchmove') e.preventDefault();
     const pos = e.type === 'touchmove' ? e.touches[0] : e;
-    currentX = pos.clientX - startX;
-    currentY = pos.clientY - startY;
-    updateOverlayTransform();
+    manualX = pos.clientX - startX;
+    manualY = pos.clientY - startY;
+    updateARTransform();
   };
 
   const endDrag = () => { isDragging = false; };
 
-  // Remove old listeners to avoid duplicates if re-opened
-  overlay.removeEventListener('mousedown', startDrag);
-  overlay.removeEventListener('touchstart', startDrag);
-  
   overlay.addEventListener('mousedown', startDrag);
   overlay.addEventListener('touchstart', startDrag);
-  
-  window.removeEventListener('mousemove', doDrag);
-  window.removeEventListener('touchmove', doDrag);
   window.addEventListener('mousemove', doDrag);
   window.addEventListener('touchmove', doDrag, { passive: false });
-  
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('touchend', endDrag);
-
-  // Scale/Rotation with Pinch (Advanced - for now we'll add sliders back if needed, but let's try a premium feel)
-  // Let's add a small control panel for scale if user wants to adjust
-  if (!document.getElementById('ar-quick-controls')) {
-     const qc = document.createElement('div');
-     qc.id = 'ar-quick-controls';
-     qc.style = 'position:absolute; top:80px; right:20px; display:flex; flex-direction:column; gap:15px; z-index:101;';
-     qc.innerHTML = `
-        <button id="ar-zoom-in" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">+</button>
-        <button id="ar-zoom-out" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold;">-</button>
-        <button id="ar-reset" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.9); border:none; display:flex; align-items:center; justify-content:center; font-size:16px;">🔄</button>
-     `;
-     mobileView.appendChild(qc);
-     
-     document.getElementById('ar-zoom-in').onclick = () => { arScale += 0.1; updateOverlayTransform(); };
-     document.getElementById('ar-zoom-out').onclick = () => { arScale = Math.max(0.2, arScale - 0.1); updateOverlayTransform(); };
-     document.getElementById('ar-reset').onclick = () => { currentX = 0; currentY = 0; arScale = 1; updateOverlayTransform(); };
-  }
-
-  function updateOverlayTransform() {
-    overlay.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px)) scale(${arScale})`;
-  }
-
-  async function startCamera() {
-    try {
-      if (arStream) arStream.getTracks().forEach(t => t.stop());
-      const constraints = { 
-        video: { 
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        } 
-      };
-      arStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = arStream;
-    } catch (err) {
-      console.error("AR Kamera Hatası:", err);
-      try {
-        arStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = arStream;
-      } catch (e) {
-        alert("Kameraya erişilemedi. Lütfen izin verin.");
-      }
-    }
-  }
-
-  await startCamera();
 }
+
+function updateARTransform() {
+  const overlayWrap = document.getElementById('ar-overlay-wrap');
+  if (!overlayWrap) return;
+
+  if (arMode === 'auto') {
+    // MediaPipe coordinate system is 0-1, we use % for translate
+    // We also need to flip X because video is mirrored
+    const displayX = 100 - autoX; 
+    overlayWrap.style.left = `${displayX}%`;
+    overlayWrap.style.top = `${autoY}%`;
+    overlayWrap.style.transform = `translate(-50%, -50%) scale(${autoScale}) rotate(${autoRot}deg)`;
+    overlayWrap.style.opacity = isSnapActive ? '1' : '0';
+  } else {
+    overlayWrap.style.left = '50%';
+    overlayWrap.style.top = '50%';
+    overlayWrap.style.transform = `translate(calc(-50% + ${manualX}px), calc(-50% + ${manualY}px)) scale(${manualScale}) rotate(${manualRot}deg)`;
+    overlayWrap.style.opacity = '1';
+  }
+}
+
 
 function renderCategories() {
   const scroll = document.getElementById('category-scroll');

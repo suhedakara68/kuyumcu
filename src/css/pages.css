@@ -563,37 +563,53 @@
   transform: scale(0.9);
 }
 
-.ar-tab {
+.ar-mode-tab {
   cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 20px;
+  opacity: 0.6;
   transition: all 0.3s;
+  position: relative;
 }
 
-.ar-tab.active {
-  background: rgba(212, 168, 83, 0.1);
+.ar-mode-tab.active {
+  opacity: 1;
 }
 
-.ar-mode-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.ar-mode-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gold-500);
+  border-radius: 2px;
 }
 
-.ar-mode-btn.active {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+#ar-status {
+  pointer-events: none;
+  animation: fadeInOut 2s infinite alternate;
 }
 
-#ar-hint-box {
-  animation: float 2s ease-in-out infinite;
+@keyframes fadeInOut {
+  from { opacity: 0.6; transform: translateX(-50%) scale(0.95); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(-50%, 0); }
-  50% { transform: translate(-50%, -10px); }
+input[type="range"] {
+  -webkit-appearance: none;
+  background: rgba(255,255,255,0.1);
+  height: 4px;
+  border-radius: 2px;
 }
 
-#ar-quick-controls button:active {
-  transform: scale(0.85);
-  background: white;
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--gold-500);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(212, 168, 83, 0.5);
 }
 
 #ar-overlay-img {
@@ -602,6 +618,13 @@
 }
 
 /* Animations */
+@keyframes scanLoop {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { top: 100%; opacity: 0; }
+}
+
 @keyframes modalUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
