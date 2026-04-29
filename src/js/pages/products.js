@@ -1,220 +1,158 @@
 // ============================================
-// KUYUMCU PWA — Products Page (Bulletproof Fix)
+// KUYUMCU PWA — Products Page (Final Global Fix)
 // ============================================
 import { getProducts, CATEGORIES, calculateProductPrice } from '../services/product-service.js';
 import { onPriceUpdate } from '../services/price-service.js';
 import { formatCurrency, formatNumber } from '../utils/formatters.js';
-import { navigate } from '../router.js';
 import { arService } from '../services/ar-service.js';
 
-let unsubscribe = null;
 let currentGramPrice = 0;
 let selectedCategory = 'all';
 let currentSort = 'default';
-let compareList = [];
 
-/**
- * Main Render Function
- */
 export function renderProducts(container) {
-  // 1. Build basic structure
-  initTemplate(container);
+  // 1. Create Modal at Body level (if not exists)
+  ensureARModalExists();
   
-  // 2. Initial Data Load
+  // 2. Build page content
+  container.innerHTML = `
+    <div class="products-page" style="padding:20px; padding-bottom:100px;">
+      <h2 class="page__title">Ürünler</h2>
+      <div class="category-scroll" id="category-scroll"></div>
+      <div class="filters-bar" style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <select id="sort-filter" style="background:#1A1A2E; color:white; border:1px solid #333; padding:8px; border-radius:10px; font-size:12px;">
+          <option value="default">Sıralama</option>
+          <option value="price-asc">Ucuzdan Pahalıya</option>
+          <option value="price-desc">Pahalıdan Ucuza</option>
+        </select>
+        <div id="product-count" style="font-size:12px; opacity:0.6;">0 Ürün</div>
+      </div>
+      <div class="grid-2" id="product-grid"></div>
+    </div>
+  `;
+  
   renderCategories();
   renderProductGrid();
-  
-  // 3. Attach Bulletproof Listeners
-  setupGlobalClickHandlers();
+  setupGlobalListeners();
 
-  // 4. Live Updates
-  unsubscribe = onPriceUpdate((prices) => {
-    const gram = prices.gram_altin;
-    if (gram) {
-      currentGramPrice = gram.marginSell;
+  const unsubscribe = onPriceUpdate((prices) => {
+    if (prices.gram_altin) {
+      currentGramPrice = prices.gram_altin.marginSell;
       renderProductGrid();
     }
   });
 
-  return { 
-    destroy: () => { 
-      if (unsubscribe) unsubscribe(); 
-      arService.stop();
-      // Remove global listener logic here if needed
-    } 
-  };
+  return { destroy: () => { if (unsubscribe) unsubscribe(); arService.stop(); } };
 }
 
-function initTemplate(container) {
-  container.innerHTML = `
-    <div class="products-page" style="padding-bottom:100px;">
-      <h2 class="page__title">Ürünler</h2>
-      <p class="page__subtitle">Mücevher Katalogu</p>
-
-      <div class="category-scroll" id="category-scroll"></div>
+function ensureARModalExists() {
+  if (document.getElementById('ar-modal')) return;
+  
+  const modalHtml = `
+    <div id="ar-modal" style="display:none; position:fixed; inset:0; z-index:999999; background:#000; width:100vw; height:100vh;">
+      <div style="position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; z-index:100;">
+        <div style="color:white; font-weight:bold; font-size:14px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">NOVENTRA AR</div>
+        <button id="close-ar" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.2); border:none; color:white; font-size:24px;">✕</button>
+      </div>
       
-      <div class="filters-bar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <select id="sort-filter" class="filter-select" style="background:var(--bg-surface); border:1px solid var(--border-subtle); padding:8px 12px; border-radius:10px; font-size:12px; color:white;">
-          <option value="default">Sıralama: Varsayılan</option>
-          <option value="price-asc">Fiyat: En Düşük</option>
-          <option value="price-desc">Fiyat: En Yüksek</option>
-        </select>
-        <div id="product-count" style="font-size:12px; color:var(--text-muted);">0 Ürün</div>
+      <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1); background:#000;"></video>
+      <canvas id="ar-canvas" style="position:absolute; inset:0; width:100%; height:100%; z-index:50; pointer-events:none;"></canvas>
+      
+      <div id="ar-status" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.8); color:white; padding:15px 25px; border-radius:30px; font-size:14px; z-index:200; text-align:center;">
+        Başlatılıyor...
       </div>
 
-      <div class="grid-2" id="product-grid" style="pointer-events: auto !important;"></div>
-
-      <!-- AR Modal -->
-      <div class="modal-overlay" id="ar-modal" style="display:none; position:fixed; inset:0; z-index:1000; background:#000;">
-        <div class="ar-header" style="position:absolute; top:0; left:0; right:0; padding:20px; display:flex; justify-content:space-between; align-items:center; z-index:1100;">
-          <div style="color:white; font-size:12px; font-weight:bold; letter-spacing:1px;">NOVENTRA <span style="color:var(--gold-500);">3D AR</span></div>
-          <button id="close-ar" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.2); border:none; color:white; font-size:20px; cursor:pointer;">✕</button>
-        </div>
-
-        <div id="ar-view-container" style="width:100%; height:100%; position:relative;">
-          <video id="ar-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scaleX(-1);"></video>
-          <canvas id="ar-canvas" style="position:absolute; inset:0; width:100%; height:100%; z-index:1050; pointer-events:none;"></canvas>
-          <div id="ar-status" style="position:absolute; top:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:30px; font-size:12px; z-index:1200; white-space:nowrap;">
-             Hazırlanıyor...
-          </div>
-          
-          <div class="ar-ui-bottom" style="position:absolute; bottom:0; left:0; right:0; padding:30px 20px; background:linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index:1100;">
-             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div>
-                   <h3 id="ar-product-name" style="color:white; margin:0 0 5px 0; font-size:16px;">Ürün Adı</h3>
-                   <div id="ar-product-price" style="color:var(--gold-500); font-size:20px; font-weight:bold;">0.00 TL</div>
-                </div>
-                <button id="ar-add-to-cart" style="background:var(--gold-500); color:black; border:none; padding:12px 25px; border-radius:12px; font-weight:bold; font-size:14px;">SATIN AL</button>
-             </div>
-          </div>
-        </div>
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:40px 20px; background:linear-gradient(to top, rgba(0,0,0,1), transparent); z-index:100;">
+        <h3 id="ar-product-name" style="color:white; margin:0; font-size:18px;">Ürün</h3>
+        <div id="ar-product-price" style="color:var(--gold-500); font-size:22px; font-weight:bold;">0.00 TL</div>
+        <button id="ar-buy-btn" style="width:100%; background:var(--gold-500); border:none; padding:15px; border-radius:12px; margin-top:15px; font-weight:bold; font-size:16px;">SEPETE EKLE</button>
       </div>
     </div>
   `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-function renderProductGrid() {
-  const grid = document.getElementById('product-grid');
-  if (!grid) return;
-  
-  const products = getProducts(selectedCategory);
-  document.getElementById('product-count').textContent = `${products.length} Ürün`;
-
-  grid.innerHTML = products.map(p => {
-    const price = calculateProductPrice(p, currentGramPrice);
-    return `
-      <div class="product-card" data-id="${p.id}" style="position:relative; background:var(--bg-surface); border-radius:20px; overflow:hidden; border:1px solid var(--border-subtle);">
-        <div class="product-card__image-wrap" style="height:160px; overflow:hidden;">
-          <img src="${p.image}" style="width:100%; height:100%; object-fit:cover;">
-        </div>
-        <div class="product-card__body" style="padding:15px;">
-          <h4 style="margin:0 0 5px 0; font-size:13px; font-weight:600;">${p.name}</h4>
-          <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">${p.karat} Ayar • ${formatNumber(p.weight)} gr</div>
-          <div style="font-size:16px; font-weight:bold; color:var(--gold-500); margin-bottom:15px;">${formatCurrency(price)}</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <button class="wa-ask" data-name="${p.name}" style="background:rgba(255,255,255,0.05); color:white; border:1px solid var(--border-subtle); padding:8px; border-radius:10px; font-size:11px; cursor:pointer;">Soru Sor</button>
-            <button class="ar-try-btn" data-id="${p.id}" style="background:var(--gold-500); color:black; border:none; padding:8px; border-radius:10px; font-size:11px; font-weight:bold; cursor:pointer; position:relative; z-index:10;">Dene</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function setupGlobalClickHandlers() {
-  // Use a global document listener to catch all clicks regardless of DOM state
+function setupGlobalListeners() {
   document.addEventListener('click', async (e) => {
-    const target = e.target;
-
-    // 1. AR TRY BUTTON
-    if (target.classList.contains('ar-try-btn') || target.closest('.ar-try-btn')) {
-      const btn = target.classList.contains('ar-try-btn') ? target : target.closest('.ar-try-btn');
-      const productId = btn.dataset.id;
-      const product = getProducts().find(p => p.id === productId);
-      
-      // Visual feedback
-      btn.style.opacity = '0.5';
-      btn.textContent = '...';
-      
-      if (product) {
-        await openAR(product);
-      }
-      
-      btn.style.opacity = '1';
-      btn.textContent = 'Dene';
+    const btn = e.target.closest('.ar-try-btn');
+    if (btn) {
+      const product = getProducts().find(p => p.id === btn.dataset.id);
+      if (product) openAR(product);
     }
 
-    // 2. CLOSE AR
-    if (target.id === 'close-ar' || target.closest('#close-ar')) {
-      const modal = document.getElementById('ar-modal');
-      if (modal) modal.style.display = 'none';
+    if (e.target.id === 'close-ar') {
+      document.getElementById('ar-modal').style.display = 'none';
       arService.stop();
     }
 
-    // 3. ADD TO CART / BUY
-    if (target.id === 'ar-add-to-cart') {
-      alert('Ürün sepetinize eklendi!');
-      const modal = document.getElementById('ar-modal');
-      if (modal) modal.style.display = 'none';
+    if (e.target.id === 'ar-buy-btn') {
+      alert("Ürün sepetinize eklendi!");
+      document.getElementById('ar-modal').style.display = 'none';
       arService.stop();
-    }
-    
-    // 4. WHATSAPP ASK
-    if (target.classList.contains('wa-ask') || target.closest('.wa-ask')) {
-      const btn = target.classList.contains('wa-ask') ? target : target.closest('.wa-ask');
-      const text = encodeURIComponent(`Merhaba, "${btn.dataset.name}" ürününüz hakkında bilgi almak istiyorum.`);
-      window.open(`https://wa.me/905555555555?text=${text}`, '_blank');
     }
   });
 }
 
 async function openAR(product) {
   const modal = document.getElementById('ar-modal');
+  const status = document.getElementById('ar-status');
   const video = document.getElementById('ar-video');
   const canvas = document.getElementById('ar-canvas');
-  const status = document.getElementById('ar-status');
-  
-  if (!modal || !video || !canvas) return;
 
-  // Immediate UI Feedback
   modal.style.display = 'block';
   status.style.display = 'block';
-  status.textContent = 'Başlatılıyor...';
-  
+  status.textContent = 'Kamera Açılıyor...';
+
   try {
     document.getElementById('ar-product-name').textContent = product.name;
     const price = calculateProductPrice(product, currentGramPrice);
     document.getElementById('ar-product-price').textContent = formatCurrency(price);
 
-    // Initializing with status updates
-    await arService.init(video, canvas, (msg) => {
-      status.textContent = msg;
-    });
-
+    await arService.init(video, canvas, (msg) => { status.textContent = msg; });
     const mode = (product.category === 'kolye' || product.category === 'kupe') ? 'pose' : 'hand';
     await arService.start(mode);
-
+    
     if (product.model3d) {
-      await arService.loadModel(product.model3d).catch(() => console.warn("Model fallback"));
+      await arService.loadModel(product.model3d);
     }
-
+    
+    status.style.display = 'none';
   } catch (err) {
-    console.error("AR Error:", err);
-    status.textContent = err.message || 'Kamera başlatılamadı.';
-    status.style.background = '#e74c3c';
-    setTimeout(() => { modal.style.display = 'none'; }, 3000);
+    status.textContent = "HATA: " + err.message;
+    status.style.background = "red";
+    setTimeout(() => { modal.style.display = 'none'; }, 4000);
   }
+}
+
+function renderProductGrid() {
+  const grid = document.getElementById('product-grid');
+  if (!grid) return;
+  const products = getProducts(selectedCategory);
+  document.getElementById('product-count').textContent = `${products.length} Ürün`;
+
+  grid.innerHTML = products.map(p => {
+    const price = calculateProductPrice(p, currentGramPrice);
+    return `
+      <div class="product-card" style="background:#121225; border-radius:15px; overflow:hidden; border:1px solid #222;">
+        <div style="height:140px; background:#000;"><img src="${p.image}" style="width:100%; height:100%; object-fit:cover;"></div>
+        <div style="padding:12px;">
+          <div style="font-weight:bold; font-size:13px; margin-bottom:4px;">${p.name}</div>
+          <div style="font-size:15px; color:var(--gold-500); font-weight:bold;">${formatCurrency(price)}</div>
+          <button class="ar-try-btn" data-id="${p.id}" style="width:100%; background:var(--gold-500); border:none; padding:8px; border-radius:8px; margin-top:10px; font-weight:bold; font-size:12px;">DENE</button>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderCategories() {
   const scroll = document.getElementById('category-scroll');
   if (!scroll) return;
   scroll.innerHTML = CATEGORIES.map(cat => `
-    <div class="category-chip ${selectedCategory === cat.key ? 'active' : ''}" data-cat="${cat.key}" style="display:inline-block; padding:8px 15px; background:rgba(255,255,255,0.05); border-radius:12px; margin-right:10px; font-size:12px; color:white; cursor:pointer; border:1px solid transparent;">
+    <div class="category-chip ${selectedCategory === cat.key ? 'active' : ''}" data-cat="${cat.key}" style="display:inline-block; padding:8px 15px; background:#121225; border-radius:10px; margin-right:8px; font-size:12px; cursor:pointer;">
       ${cat.label}
     </div>
   `).join('');
-
   scroll.onclick = (e) => {
     const chip = e.target.closest('.category-chip');
     if (!chip) return;
